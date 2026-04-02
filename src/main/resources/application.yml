@@ -1,0 +1,15 @@
+server:
+  port: 5000
+
+logging:
+  file:
+    name: ./logs/service.log
+  level:
+    root: INFO
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/srv27_antoshka?currentSchema=front
+    username: antoshkauser
+    password: antoshkapass
+    driver-class-name: org.postgresql.Driver

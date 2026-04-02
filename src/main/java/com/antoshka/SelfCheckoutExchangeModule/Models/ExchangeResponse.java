@@ -1,0 +1,12 @@
+
+package com.antoshka.SelfCheckoutExchangeModule.Models;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import java.util.List;
+
+@Data
+@AllArgsConstructor
+public class ExchangeResponse {
+    private List<ProductResponse> response;
+}
