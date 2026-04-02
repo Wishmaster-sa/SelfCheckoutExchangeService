@@ -1,0 +1,23 @@
+
+[Unit]
+Description=Self-checkout exchange service
+After=syslog.target
+
+[Service]
+User=sa
+# The configuration file application.properties should be here:
+
+#change this to your workspace
+WorkingDirectory=/opt/SCOExchange
+
+#path to executable. 
+#executable is a bash script which calls jar file
+ExecStart=java -jar /opt/SCOExchange/SelfCheckoutExchangeModule-1.0.0.jar
+
+SuccessExitStatus=143
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
