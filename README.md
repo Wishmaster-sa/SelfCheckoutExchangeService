@@ -17,7 +17,7 @@
 1. Завантажити скрипт:
 
 ```bash
-wget https://githubusercontent.com/Wishmaster-sa/SelfCheckoutExchangeService/blob/master/install.sh
+wget https://raw.githubusercontent.com/Wishmaster-sa/SelfCheckoutExchangeService/blob/master/install.sh
 ```
 
 2. Зробити файл виконуваним:
