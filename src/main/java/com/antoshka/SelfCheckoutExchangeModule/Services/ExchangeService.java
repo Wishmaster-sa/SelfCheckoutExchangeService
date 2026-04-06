@@ -24,7 +24,7 @@ public class ExchangeService {
         return new ExchangeResponse(responses);
     }
 
-    public String testDB(){
+    public String checkDB(){
         Integer result = jdbc.queryForObject("SELECT 1", Integer.class);
         log.info("DB connection OK: {}", result);
         return "DB connection OK: {}";
@@ -300,7 +300,7 @@ public class ExchangeService {
      */
     private Integer getPriceLevel(String name) {
 
-        // Пытаемся найти существующий уровень цен
+        // 🔍 Ищем существующий уровень цен
         List<Integer> ids = jdbc.query(
                 "SELECT id_price_level FROM front.price_level WHERE name_price_level = ?",
                 (rs, i) -> rs.getInt(1),
@@ -311,28 +311,31 @@ public class ExchangeService {
             return ids.get(0);
         }
 
-        // Если не найден — создаем
         log.info("Price level '{}' not found. Creating new.", name);
 
+        // 📌 Генерим новый ID
         Integer maxId = jdbc.queryForObject(
-            "SELECT COALESCE(MAX(id_price_level), 0) FROM front.price_level",
-            Integer.class
-            ) + 1; 
-    
-        jdbc.update(
-                "INSERT INTO front.price_level(id_price_level, name_price_level, active) VALUES (?, ?, true)",
-            maxId,
-                name
-        );
+                "SELECT COALESCE(MAX(id_price_level), 0) FROM front.price_level",
+                Integer.class
+        ) + 1;
 
-        // Получаем id только что созданной записи
-        return jdbc.queryForObject(
-                "SELECT id_price_level FROM front.price_level WHERE name_price_level = ?",
-                Integer.class,
-                name
-        );
+        // 📌 Генерим GUID
+        UUID guid = UUID.randomUUID();
+
+        // ✅ Вставка
+        jdbc.update("""
+            INSERT INTO front.price_level(
+                id_price_level,
+                name_price_level,
+                active,
+                guid
+            )
+            VALUES (?, ?, true, ?::uuid)
+        """, maxId, name, guid.toString());
+
+        return maxId;
     }
-    
+
     
     /**
      * Вставка или обновление цены
@@ -377,17 +380,32 @@ public class ExchangeService {
      */
     private void updateImage(String base64, Integer id_goods) {
 
+        if (base64 == null || base64.isBlank()) {
+            log.info("No image provided for goods {}", id_goods);
+            return;
+        }
+
         // убираем переносы и пробелы
         base64 = base64.replaceAll("\\s", "");
 
         byte[] bytes = Base64.getDecoder().decode(base64);
 
-        log.info("updating image for goods {}", id_goods);
-        
-        jdbc.update("""
-            INSERT INTO front.images(id_image, image, image_format, active)
-            VALUES (?, ?, 'image/jpeg', true)
-        """, id_goods,bytes);
+        log.info("Updating image for goods {}", id_goods);
+
+        int updated = jdbc.update("""
+            UPDATE front.images
+            SET image = ?, image_format = 'image/jpeg', active = true
+            WHERE id_image = ?
+        """, bytes, id_goods);
+
+        if (updated == 0) {
+            log.info("Image not found, inserting new for goods {}", id_goods);
+
+            jdbc.update("""
+                INSERT INTO front.images(id_image, image, image_format, active)
+                VALUES (?, ?, 'image/jpeg', true)
+            """, id_goods, bytes);
+        }
     }
 
     /**
