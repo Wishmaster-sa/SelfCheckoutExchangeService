@@ -3,6 +3,7 @@ package com.antoshka.SelfCheckoutExchangeModule.Controllers;
 
 import com.antoshka.SelfCheckoutExchangeModule.Models.*;
 import com.antoshka.SelfCheckoutExchangeModule.Services.ExchangeService;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,8 +20,13 @@ public class ExchangeController {
     }
 
     @GetMapping("test")
-    public String testDb() {
-        return service.testDB();
+    public String test() {
+        return LocalDateTime.now().toString();
+    }
+
+    @GetMapping("checkdb")
+    public String checkDb() {
+        return service.checkDB();
     }
 
     @PostMapping("exchange")
