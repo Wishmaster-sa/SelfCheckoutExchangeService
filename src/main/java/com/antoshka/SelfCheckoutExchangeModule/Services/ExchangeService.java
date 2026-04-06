@@ -2,6 +2,7 @@
 package com.antoshka.SelfCheckoutExchangeModule.Services;
 
 import com.antoshka.SelfCheckoutExchangeModule.Models.*;
+import java.io.RandomAccessFile;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -479,8 +480,47 @@ public class ExchangeService {
                     "Товары КСО"
             );
         }
-
-
     }
+
+    public List<String> readLogFile(String logFilePath, int lines){
+            List<String> result = new LinkedList<>();
+
+            try (RandomAccessFile file = new RandomAccessFile(logFilePath, "r")) {
+
+                long fileLength = file.length() - 1;
+                int lineCount = 0;
+
+                StringBuilder sb = new StringBuilder();
+
+                for (long pointer = fileLength; pointer >= 0; pointer--) {
+
+                    file.seek(pointer);
+                    int readByte = file.read();
+
+                    if (readByte == '\n') {
+                        if (sb.length() > 0) {
+                            result.add(0, sb.reverse().toString());
+                            sb.setLength(0);
+                            lineCount++;
+                        }
+                        if (lineCount == lines) break;
+                    } else {
+                        sb.append((char) readByte);
+                    }
+                }
+
+                // последняя строка (если файл не заканчивается \n)
+                if (sb.length() > 0 && lineCount < lines) {
+                    result.add(0, sb.reverse().toString());
+                }
+
+            } catch (Exception e) {
+                throw new RuntimeException("Error reading log file", e);
+            }
+
+            return result;
+        }
+    
+        
 
 }
