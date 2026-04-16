@@ -13,5 +13,6 @@ public class ProductRequest {
     private Integer price;
     private String priceLevel;
     private String image;
+    private byte[] image_bytes;
     private List<BarcodeRequest> barcodes;
 }

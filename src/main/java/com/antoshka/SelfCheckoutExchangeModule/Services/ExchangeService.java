@@ -3,12 +3,15 @@ package com.antoshka.SelfCheckoutExchangeModule.Services;
 
 import com.antoshka.SelfCheckoutExchangeModule.Models.*;
 import java.io.RandomAccessFile;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import java.util.*;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -43,7 +46,18 @@ public class ExchangeService {
         for (ProductRequest product : request.getProducts()) {
             try {
                 log.info("Start processing product {}", product.getId());
+                
+                // если есть картинка преобразовываем ее в двоичные данные
+                if (product.getImage() != null && !product.getImage().isEmpty()) {
+                    // убираем переносы и пробелы
+                    String image = product.getImage().replaceAll("\\s", "");
 
+                    byte[] image_bytes = Base64.getDecoder().decode(image);
+                    product.setImage_bytes(image_bytes);
+                    
+                }
+
+                
                 processSingleProduct(product);
 
                 responses.add(new ProductResponse(product.getId(), true, ""));
@@ -62,6 +76,42 @@ public class ExchangeService {
         return new ExchangeResponse(responses);
     }
 
+    @Transactional
+    public ExchangeResponse process(ExchangeRequest request, MultipartFile image) {
+
+        List<ProductResponse> responses = new ArrayList<>();
+
+        for (ProductRequest product : request.getProducts()) {
+            try {
+                log.info("Start processing product {}", product.getId());
+                
+                // если есть картинка преобразовываем ее в двоичные данные
+                if (image.getSize()>0) {
+
+                    product.setImage_bytes(image.getBytes());
+                    
+                }
+
+                
+                processSingleProduct(product);
+
+                responses.add(new ProductResponse(product.getId(), true, ""));
+            } catch (Exception e) {
+
+                log.error("Error processing product {}", product.getId(), e);
+
+                responses.add(new ProductResponse(
+                        product.getId(),
+                        false,
+                        "Произошла ошибка при работе с базой данных"
+                ));
+            }
+        }
+
+        return new ExchangeResponse(responses);
+    }
+    
+    
     /**
      * Полный pipeline обработки одного товара
      * ВАЖНО: порядок операций критичен!
@@ -163,9 +213,9 @@ public class ExchangeService {
             """, p.getName(), taxId, id);
 
             // 6. Обработка изображения (если есть)
-            if (p.getImage() != null && !p.getImage().isEmpty()) {
+            if(p.getImage_bytes().length>0){
                id_image = id;
-                updateImage(p.getImage(),id);
+               updateImage(p.getImage_bytes(),id);                
             }
             
             // 👉 attrs без extern_service_id
@@ -233,9 +283,9 @@ public class ExchangeService {
         """, newId, taxId, p.getName(), guid);
 
             // 6. Обработка изображения (если есть)
-            if (p.getImage() != null && !p.getImage().isEmpty()) {
+            if(p.getImage_bytes().length>0){
                id_image = newId;
-                updateImage(p.getImage(),newId);
+               updateImage(p.getImage_bytes(),newId);                
             }
         // 👉 attrs без extern_service_id
         jdbc.update("""
@@ -379,17 +429,14 @@ public class ExchangeService {
      * Сохраняем изображение
      * (пока без связи с товаром)
      */
-    private void updateImage(String base64, Integer id_goods) {
 
-        if (base64 == null || base64.isBlank()) {
+    private void updateImage(byte[] image_bytes, Integer id_goods) {
+
+        if (image_bytes == null || image_bytes.length == 0) {
             log.info("No image provided for goods {}", id_goods);
             return;
         }
 
-        // убираем переносы и пробелы
-        base64 = base64.replaceAll("\\s", "");
-
-        byte[] bytes = Base64.getDecoder().decode(base64);
 
         log.info("Updating image for goods {}", id_goods);
 
@@ -397,7 +444,7 @@ public class ExchangeService {
             UPDATE front.images
             SET image = ?, image_format = 'image/jpeg', active = true
             WHERE id_image = ?
-        """, bytes, id_goods);
+        """, image_bytes, id_goods);
 
         if (updated == 0) {
             log.info("Image not found, inserting new for goods {}", id_goods);
@@ -405,10 +452,10 @@ public class ExchangeService {
             jdbc.update("""
                 INSERT INTO front.images(id_image, image, image_format, active)
                 VALUES (?, ?, 'image/jpeg', true)
-            """, id_goods, bytes);
+            """, id_goods, image_bytes);
         }
     }
-
+    
     /**
      * Полная замена штрихкодов товара
      */
@@ -482,45 +529,115 @@ public class ExchangeService {
         }
     }
 
-    public List<String> readLogFile(String logFilePath, int lines){
-            List<String> result = new LinkedList<>();
 
-            try (RandomAccessFile file = new RandomAccessFile(logFilePath, "r")) {
+    public List<String> readLogFile(String logFilePath, int lines, String search, String since) {
 
-                long fileLength = file.length() - 1;
-                int lineCount = 0;
+        List<String> result = new LinkedList<>();
 
-                StringBuilder sb = new StringBuilder();
+        try (RandomAccessFile file = new RandomAccessFile(logFilePath, "r")) {
 
-                for (long pointer = fileLength; pointer >= 0; pointer--) {
+            long fileLength = file.length() - 1;
+            int lineCount = 0;
 
-                    file.seek(pointer);
-                    int readByte = file.read();
+            StringBuilder sb = new StringBuilder();
 
-                    if (readByte == '\n') {
-                        if (sb.length() > 0) {
-                            result.add(0, sb.reverse().toString());
-                            sb.setLength(0);
+            String searchLower = (search == null) ? null : search.toLowerCase();
+
+            Duration duration = parseSince(since);
+            OffsetDateTime threshold = (duration == null)
+                    ? null
+                    : OffsetDateTime.now().minus(duration);
+
+            for (long pointer = fileLength; pointer >= 0; pointer--) {
+
+                file.seek(pointer);
+                int readByte = file.read();
+
+                if (readByte == '\n') {
+                    if (sb.length() > 0) {
+
+                        String line = sb.reverse().toString();
+                        sb.setLength(0);
+
+                        // ⏱ проверка времени
+                        if (threshold != null) {
+                            OffsetDateTime logTime = extractTime(line);
+                            if (logTime == null || logTime.isBefore(threshold)) {
+                                continue;
+                            }
+                        }
+
+                        // 🔍 фильтр
+                        if (searchLower == null || line.toLowerCase().contains(searchLower)) {
+                            result.add(0, line);
                             lineCount++;
                         }
-                        if (lineCount == lines) break;
-                    } else {
-                        sb.append((char) readByte);
                     }
-                }
 
-                // последняя строка (если файл не заканчивается \n)
-                if (sb.length() > 0 && lineCount < lines) {
-                    result.add(0, sb.reverse().toString());
-                }
+                    if (lineCount == lines) break;
 
-            } catch (Exception e) {
-                throw new RuntimeException("Error reading log file", e);
+                } else {
+                    sb.append((char) readByte);
+                }
             }
 
-            return result;
+            // последняя строка
+            if (sb.length() > 0 && lineCount < lines) {
+                String line = sb.reverse().toString();
+
+                if (matches(line, searchLower, threshold)) {
+                    result.add(0, line);
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading log file", e);
         }
-    
-        
+
+        return result;
+    }
+
+    private OffsetDateTime extractTime(String line) {
+        try {
+            // берем первую часть строки до пробела
+            String timestamp = line.split(" ")[0];
+            return OffsetDateTime.parse(timestamp);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private boolean matches(String line, String searchLower, OffsetDateTime threshold) {
+
+        if (threshold != null) {
+            OffsetDateTime logTime = extractTime(line);
+            if (logTime == null || logTime.isBefore(threshold)) {
+                return false;
+            }
+        }
+
+        if (searchLower != null && !line.toLowerCase().contains(searchLower)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private Duration parseSince(String since) {
+        if (since == null || since.isBlank()) return null;
+
+        since = since.trim().toLowerCase();
+
+        if (since.endsWith("m")) {
+            return Duration.ofMinutes(Long.parseLong(since.replace("m", "")));
+        } else if (since.endsWith("h")) {
+            return Duration.ofHours(Long.parseLong(since.replace("h", "")));
+        } else if (since.endsWith("d")) {
+            return Duration.ofDays(Long.parseLong(since.replace("d", "")));
+        }
+
+        throw new IllegalArgumentException("Invalid since format. Use 5m, 2h, 1d");
+    }
+
 
 }

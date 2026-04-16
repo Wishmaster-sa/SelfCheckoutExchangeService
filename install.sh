@@ -76,7 +76,7 @@ sudo chown -R $currentuser:$currentuser ./SelfCheckoutExchangeService
 cd ./SelfCheckoutExchangeService
 
 echo "******************************************************************************
-*                  Компіляція SelfCheckoutExchangeService
+*                  Компіляція Self-Checkout Exchange Service
 ******************************************************************************"
 /usr/bin/mvn package
 
@@ -89,7 +89,7 @@ echo "**************************************************************************
 
 echo "**************************************************************************************
     * Щоб запустити клієнт перейдить в папку проекта (SelfCheckoutExchangeService) 
-    * Отредагуйте конфіг файл за допомогою nano ./target/application.yml
+    * Отредагуйте конфіг файл за допомогою nano ./target/classes/application.yml
     * Вам треба вказати адрес сервіса (server-path)
     * порт клієнта (port)
     * Встановити або змінити файл логування (logging.file.name)
