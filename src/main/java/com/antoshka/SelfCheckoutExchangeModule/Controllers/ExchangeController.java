@@ -63,16 +63,17 @@ public class ExchangeController {
 
 
     @PostMapping(value = "/exchange", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> exchange(
+    //public ResponseEntity<?> exchange(
+    public ExchangeResponse exchange(
             @RequestParam("product") String productJson,
             @RequestParam(value = "image", required = false) MultipartFile image
     ) throws Exception {
 
         ExchangeRequest product = objectMapper.readValue(productJson, ExchangeRequest.class);
 
-        service.process(product, image);
+        return service.process(product, image);
 
-        return ResponseEntity.ok().build();
+        //return ResponseEntity.ok().build();
     }
 
     
