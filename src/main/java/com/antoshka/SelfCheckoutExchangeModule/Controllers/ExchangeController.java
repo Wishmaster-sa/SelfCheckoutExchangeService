@@ -2,6 +2,7 @@
 package com.antoshka.SelfCheckoutExchangeModule.Controllers;
 
 import com.antoshka.SelfCheckoutExchangeModule.Models.*;
+import com.antoshka.SelfCheckoutExchangeModule.Services.ExchangeBatchService;
 import com.antoshka.SelfCheckoutExchangeModule.Services.ExchangeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
@@ -10,7 +11,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ExchangeController {
 
     private final ExchangeService service;
+    private final ExchangeBatchService batchService;
     private final ObjectMapper objectMapper;
 
     @Value("${logging.file.name}")
@@ -86,7 +87,7 @@ public class ExchangeController {
 
         ExchangeRequest request = objectMapper.readValue(productJson, ExchangeRequest.class);
 
-        return service.processBatch(request, files);
+        return batchService.processBatch(request, files);
     }
 
     

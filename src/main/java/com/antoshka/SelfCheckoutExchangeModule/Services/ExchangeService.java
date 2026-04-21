@@ -20,9 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class ExchangeService {
 
-    @Autowired
-    private ExchangeService self;
-    
     private final JdbcTemplate jdbc;
 
     public ExchangeResponse loopback(ExchangeRequest request) {
@@ -116,49 +113,13 @@ public class ExchangeService {
         return new ExchangeResponse(responses);
     }
 
-    public ExchangeResponse processBatch(
-            ExchangeRequest request,
-            Map<String, MultipartFile> files
-    ) {
-
-        List<ProductResponse> responses = new ArrayList<>();
-
-        for (ProductRequest p : request.getProducts()) {
-
-            try {
-                MultipartFile image = null;
-
-                if (files != null) {
-                    String key = "images[" + p.getId() + "]";
-                    image = files.get(key);
-                    p.setImage_bytes(image.getBytes());
-                }
-
-                //self здесь нужен, чтобы @Transactional работал для одного товара 
-                //и не делал rollback для всех переданных товаров. Для этих же целей сделан транзакциональный метод processSingleProductTx()
-                self.processSingleProductTx(p);
-
-                responses.add(new ProductResponse(p.getId(), true, ""));
-
-            } catch (Exception e) {
-
-                responses.add(new ProductResponse(
-                        p.getId(),
-                        false,
-                        e.getMessage()
-                ));
-            }
-        }
-
-        return new ExchangeResponse(responses);
-    }
-
     
     /**
      * Полный pipeline обработки одного товара
      * ВАЖНО: порядок операций критичен!
      */
-    private void processSingleProduct(ProductRequest p) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void processSingleProduct(ProductRequest p) {
 
         // 1. Получаем или создаем налог
         Integer taxId = getOrCreateTax(p.getTaxRate());
@@ -184,12 +145,6 @@ public class ExchangeService {
         }
     }
     
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void processSingleProductTx(ProductRequest p) {
-        processSingleProduct(p);
-    }
-
-
     /**
      * Получить или создать налоговую группу
      */
