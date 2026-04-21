@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -18,6 +20,9 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class ExchangeService {
 
+    @Autowired
+    private ExchangeService self;
+    
     private final JdbcTemplate jdbc;
 
     public ExchangeResponse loopback(ExchangeRequest request) {
@@ -110,7 +115,44 @@ public class ExchangeService {
 
         return new ExchangeResponse(responses);
     }
-    
+
+    public ExchangeResponse processBatch(
+            ExchangeRequest request,
+            Map<String, MultipartFile> files
+    ) {
+
+        List<ProductResponse> responses = new ArrayList<>();
+
+        for (ProductRequest p : request.getProducts()) {
+
+            try {
+                MultipartFile image = null;
+
+                if (files != null) {
+                    String key = "images[" + p.getId() + "]";
+                    image = files.get(key);
+                    p.setImage_bytes(image.getBytes());
+                }
+
+                //self здесь нужен, чтобы @Transactional работал для одного товара 
+                //и не делал rollback для всех переданных товаров. Для этих же целей сделан транзакциональный метод processSingleProductTx()
+                self.processSingleProductTx(p);
+
+                responses.add(new ProductResponse(p.getId(), true, ""));
+
+            } catch (Exception e) {
+
+                responses.add(new ProductResponse(
+                        p.getId(),
+                        false,
+                        e.getMessage()
+                ));
+            }
+        }
+
+        return new ExchangeResponse(responses);
+    }
+
     
     /**
      * Полный pipeline обработки одного товара
@@ -141,6 +183,12 @@ public class ExchangeService {
             replaceBarcodes(goodsId, p.getBarcodes());
         }
     }
+    
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void processSingleProductTx(ProductRequest p) {
+        processSingleProduct(p);
+    }
+
 
     /**
      * Получить или создать налоговую группу

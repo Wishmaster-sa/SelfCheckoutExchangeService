@@ -6,6 +6,7 @@ import com.antoshka.SelfCheckoutExchangeModule.Services.ExchangeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -74,6 +75,18 @@ public class ExchangeController {
         return service.process(product, image);
 
         //return ResponseEntity.ok().build();
+    }
+
+
+    @PostMapping(value = "/goods", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ExchangeResponse processBatch(
+            @RequestPart("product") String productJson,
+            @RequestPart(required = false) Map<String, MultipartFile> files
+    ) throws Exception {
+
+        ExchangeRequest request = objectMapper.readValue(productJson, ExchangeRequest.class);
+
+        return service.processBatch(request, files);
     }
 
     
