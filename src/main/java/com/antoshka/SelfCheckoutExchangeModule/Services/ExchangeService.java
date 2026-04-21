@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -216,7 +215,7 @@ public class ExchangeService {
             """, p.getName(), taxId, id);
 
             // 6. Обработка изображения (если есть)
-            if(p.getImage_bytes().length>0){
+            if((p.getImage_bytes()!=null) && (p.getImage_bytes().length>0)){
                id_image = id;
                updateImage(p.getImage_bytes(),id);                
             }
@@ -286,7 +285,7 @@ public class ExchangeService {
         """, newId, taxId, p.getName(), guid);
 
             // 6. Обработка изображения (если есть)
-            if(p.getImage_bytes().length>0){
+            if((p.getImage_bytes()!=null) && (p.getImage_bytes().length>0)){
                id_image = newId;
                updateImage(p.getImage_bytes(),newId);                
             }
