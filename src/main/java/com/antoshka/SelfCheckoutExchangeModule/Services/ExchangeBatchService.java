@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
  *
  * @author sa
  */
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class ExchangeBatchService {
@@ -39,7 +41,11 @@ public class ExchangeBatchService {
                 if (files != null) {
                     String key = "images[" + p.getId() + "]";
                     image = files.get(key);
+                    log.info("image = {}", key);
+                    
                     p.setImage_bytes(image.getBytes());
+                }else{
+                    log.info("no file image found for {}",p.getName());                    
                 }
 
                 service.processSingleProduct(p);
