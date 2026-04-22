@@ -5,7 +5,9 @@ import com.antoshka.SelfCheckoutExchangeModule.Models.*;
 import com.antoshka.SelfCheckoutExchangeModule.Services.ExchangeBatchService;
 import com.antoshka.SelfCheckoutExchangeModule.Services.ExchangeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -82,12 +85,18 @@ public class ExchangeController {
     @PostMapping(value = "/goods", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ExchangeResponse processBatch(
             @RequestPart("product") String productJson,
-            @RequestPart(required = false) Map<String, MultipartFile> files
+            HttpServletRequest request
     ) throws Exception {
 
-        ExchangeRequest request = objectMapper.readValue(productJson, ExchangeRequest.class);
+        ExchangeRequest req = objectMapper.readValue(productJson, ExchangeRequest.class);
 
-        return batchService.processBatch(request, files);
+        Map<String, MultipartFile> files = new HashMap<>();
+
+        if (request instanceof MultipartHttpServletRequest multipartRequest) {
+            files = multipartRequest.getFileMap();
+        }
+
+        return batchService.processBatch(req, files);
     }
 
     
