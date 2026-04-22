@@ -41,9 +41,15 @@ public class ExchangeBatchService {
                 if (files != null) {
                     String key = "images[" + p.getId() + "]";
                     image = files.get(key);
-                    log.info("image = {}", key);
-                    
-                    p.setImage_bytes(image.getBytes());
+                    if(image==null){
+                        log.info("no file image found for {}",p.getName());                    
+                       
+                    }else{
+                        log.info("image = {}", key);
+
+                        p.setImage_bytes(image.getBytes());
+                        
+                    }
                 }else{
                     log.info("no file image found for {}",p.getName());                    
                 }
