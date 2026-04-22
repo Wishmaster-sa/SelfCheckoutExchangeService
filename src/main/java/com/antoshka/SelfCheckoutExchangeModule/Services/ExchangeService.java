@@ -391,12 +391,13 @@ public class ExchangeService {
 
     
     /**
-     * Вставка или обновление цены
+     * Вставка или обновление цены. Цена должна приходить в копейках
      */
     private void upsertPrice(Integer goodsId, Integer unitId, Integer priceLevelId, Integer priceInput) {
 
-        int price = priceInput * 100; // перевод в копейки
-
+        //int price = priceInput * 100; // перевод в копейки
+        int price = priceInput; //Цена должна приходить в копейках
+        
         List<Integer> existing = jdbc.query(
                 "SELECT price FROM front.price WHERE id_goods=? AND id_unit=? AND id_price_level=?",
                 (rs, i) -> rs.getInt(1),
