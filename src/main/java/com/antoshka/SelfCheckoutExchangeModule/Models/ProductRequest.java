@@ -7,6 +7,7 @@ import java.util.List;
 @Data
 public class ProductRequest {
     private String id;
+    private String sku;
     private String taxRate;
     private String name;
     private String unit;

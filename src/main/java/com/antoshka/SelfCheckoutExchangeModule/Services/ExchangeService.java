@@ -261,14 +261,15 @@ public class ExchangeService {
             """, guid, id );
 
             if(res==0){
+                //2026-05-07 sa решили, что в name_series будем складывать SKU товара
                 log.info("Creating series for GUID {}, id {}", p.getId(), newId);
                 jdbc.update("""
                     INSERT INTO front.series(
                         id_goods, id_series, name_series,
                         active, guid
                     )
-                    VALUES (?, '-', '-', true,?)
-                """, id, guid);                
+                    VALUES (?, '-', ?, true,?)
+                """, id,p.getSku(), guid);                
             }
             
             
@@ -301,14 +302,15 @@ public class ExchangeService {
         // 👉 series 
         //Integer seriesMaxId = getMaxId("id_series", "series");
         //Мы серии не используем, а они тут обязательны. Пусть ИД серии будет равен ИД товара.
+        //2026-05-07 sa решили, что в name_series будем складывать SKU товара
         log.info("Creating series for GUID {}, id {}", p.getId(), newId);
         jdbc.update("""
             INSERT INTO front.series(
                 id_goods, id_series, name_series,
                 active, guid
             )
-            VALUES (?, '-', '-', true,?)
-        """, newId, guid);
+            VALUES (?, '-', ?, true,?)
+        """, newId,p.getSku(), guid);
         
         return newId;
     }
