@@ -253,12 +253,12 @@ public class ExchangeService {
             res = jdbc.update("""
                 UPDATE front.series
                 SET
-                    name_series = '-',
+                    name_series = ?,
                     id_series = '-',
                     active = true,
                     guid = ?::uuid
                 WHERE id_goods = ? 
-            """, guid, id );
+            """,p.getSku(), guid, id );
 
             if(res==0){
                 //2026-05-07 sa решили, что в name_series будем складывать SKU товара
