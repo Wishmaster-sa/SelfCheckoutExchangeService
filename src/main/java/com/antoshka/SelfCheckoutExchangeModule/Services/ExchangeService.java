@@ -249,7 +249,7 @@ public class ExchangeService {
             // 👉 series 
             //Integer seriesMaxId = getMaxId("id_series", "series");
             //Мы серии не используем, а они тут обязательны. Пусть ИД серии будет равен ИД товара.
-            log.info("Updating series for GUID {}, id {}", p.getId(), newId);
+            log.info("Updating series for GUID {}, id {}, SKU: {}", p.getId(), newId,p.getSku());
             res = jdbc.update("""
                 UPDATE front.series
                 SET
@@ -262,7 +262,7 @@ public class ExchangeService {
 
             if(res==0){
                 //2026-05-07 sa решили, что в name_series будем складывать SKU товара
-                log.info("Creating series for GUID {}, id {}", p.getId(), newId);
+                log.info("Creating series for GUID {}, id {} SKU: {}", p.getId(), newId, p.getSku());
                 jdbc.update("""
                     INSERT INTO front.series(
                         id_goods, id_series, name_series,
